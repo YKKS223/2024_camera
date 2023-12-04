@@ -52,7 +52,6 @@ b_goal_thresholds = [(0, 100, 26, 78, -98, -51)]
 
 while True:
     img = sensor.snapshot() #映像の取得
-    img.lens_corr(0.50, zoom=1.0) #補正
 
     #ボールを見つける
     ball_maxrect = 0
