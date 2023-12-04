@@ -126,7 +126,7 @@ while True:
     ball_y_1 = int(150*math.atan(math.radians(ball_y_dir)))
 
     ball_cos = math.cos(math.radians(ball_dir-45))
-    ball_dis = int(ball_y_1*ball_cos)
+    ball_dis = int(10*math.sqrt(ball_y_1*ball_cos))
     if ball_dis <= 0:
         ball_dis = 0
 
