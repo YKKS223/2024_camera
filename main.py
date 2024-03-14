@@ -9,13 +9,15 @@ sensor.set_pixformat(sensor.RGB565)
 sensor.set_framesize(sensor.QVGA)
 sensor.set_vflip(1)
 sensor.set_hmirror(1)
+sensor.set_windowing((320, 184))
 
 sensor.set_auto_gain(False, gain_db = 0)
-sensor.set_auto_whitebal(False, rgb_gain_db = (30, 20, 40))
+sensor.set_auto_whitebal(False, rgb_gain_db = (25, 20, 40))
+#sensor.set_auto_whitebal(False, rgb_gain_db = (25, 20, 40))
 sensor.set_auto_exposure(False)
-sensor.set_contrast(2)
-sensor.set_saturation(2)
-sensor.skip_frames(time = 50)
+sensor.set_contrast(0)
+sensor.set_saturation(0)
+sensor.set_brightness(0)
 sensor.run(1)
 
 camera_gain = sensor.get_gain_db()
@@ -39,11 +41,16 @@ led_g=GPIO(GPIO.GPIO0, GPIO.OUT)
 led_r=GPIO(GPIO.GPIO1, GPIO.OUT)
 
 #各閾値
-ball_thresholds = [(0, 100, 27, 58, 28, 80)]
-y_goal_thresholds = [(0, 100, -20, 21, 30, 76)]
-b_goal_thresholds = [(0, 100, 26, 78, -98, -51)]
+ball_thresholds = [(0, 100, 10, 60, 20, 70)]
+y_goal_thresholds = [(0, 100, -30, 10, 25, 75)]
+b_goal_thresholds = [(0, 100, 20, 70, -110, -60)]
 
-color_tracking_roi = [0, 40, 320, 200]
+#ball_thresholds = [(0, 100, 43, 84, 45, 94)]
+#y_goal_thresholds = [(0, 100, 13, 44, 58, 84)]
+#b_goal_thresholds = [(0, 100, 13, 37, -67, 3)]
+
+ball_tracking_roi = [0, 0, 320, 184]
+goal_tracking_roi = [0, 0, 320, 100]
 
 while True:
     img = sensor.snapshot() #映像の取得
@@ -53,8 +60,9 @@ while True:
     ball_x = 0
     ball_y = 0
 
-    for blob in img.find_blobs(ball_thresholds, roi = color_tracking_roi, pixel_threshold = 100, area_threshold = 20, merge = False):
-        ball_rectarray.append(list(blob.rect()))     #見つかった閾値内のオブジェクトをリストに格納
+    for blob in img.find_blobs(ball_thresholds, roi = ball_tracking_roi, pixel_threshold = 10, area_threshold = 10, merge = True, margin = 10):
+        if(blob[2] < 75):
+            ball_rectarray.append(list(blob.rect()))     #見つかった閾値内のオブジェクトをリストに格納
 
     try:
         ball_maxrect = max(ball_rectarray, key = lambda x: x[1])    #配列の中から一番画面の下にあるものを選定
@@ -75,7 +83,7 @@ while True:
     b_goal_width = 0
     y_goal_hight = 0
 
-    for blob in img.find_blobs(y_goal_thresholds, roi = color_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
+    for blob in img.find_blobs(y_goal_thresholds, roi = goal_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
         y_goal_rectarray.append(list(blob.rect()))     #見つかった閾値内のオブジェクトをリストに格納
 
     try:
@@ -97,7 +105,7 @@ while True:
     b_goal_width = 0
     b_goal_hight = 0
 
-    for blob in img.find_blobs(b_goal_thresholds, roi = color_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
+    for blob in img.find_blobs(b_goal_thresholds, roi = goal_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
         b_goal_rectarray.append(list(blob.rect()))     #見つかった閾値内のオブジェクトをリストに格納
 
     try:
@@ -114,15 +122,18 @@ while True:
 
     #取得した値を変換
     ball_dir = int(ball_x / ANGLE_CONVERSION)
-    ball_y_dir = int((ball_y / ANGLE_Y_CONVERSION) - 15)
-    ball_y_1 = int(50 * math.log10(150*math.atan(math.radians(ball_y_dir))))
+    ball_y_dir = int((ball_y / ANGLE_Y_CONVERSION))
+    ball_y_1 = int((150*math.tan(math.radians(ball_y_dir))))
     if ball_y_1 <= 0:
         ball_y_1 = 0
 
     ball_cos = math.cos(math.radians(ball_dir - 45))
     ball_dis = int(ball_y_1 * ball_cos)
+
     if ball_dis <= 0:
         ball_dis = 0
+    if(ball_dis > 100):
+        ball_dis = 100
 
     y_goal_dir = int(y_goal_x / ANGLE_CONVERSION)
     y_goal_hight = int(y_goal_hight);
@@ -134,7 +145,7 @@ while True:
         is_y_goal = 1
         goal_dir = y_goal_dir
         goal_size = y_goal_hight
-        if(y_goal_x + (y_goal_width / 2) < 190 or y_goal_x - (y_goal_width / 2) > 130):
+        if(y_goal_x + (y_goal_width / 2) < 170 or y_goal_x - (y_goal_width / 2) > 150):
             is_goal_front = 0
         else:
             is_goal_front = 1
@@ -142,14 +153,14 @@ while True:
         is_y_goal = 0
         goal_dir = b_goal_dir
         goal_size = b_goal_hight
-        if(b_goal_x + (b_goal_width / 2) < 190 or b_goal_x - (b_goal_width / 2) > 130):
+        if(b_goal_x + (b_goal_width / 2) < 170 or b_goal_x - (b_goal_width / 2) > 150):
             is_goal_front = 0
         else:
             is_goal_front = 1
 
     bool_data = (is_goal_front << 1) | is_y_goal
 
-    print(ball_dis)
     #uart
     send_data = bytearray([0xFF, ball_dir, ball_dis, goal_dir, goal_size, bool_data, 0xAA])
     uart.write(send_data)
+    print(ball_y_1)
