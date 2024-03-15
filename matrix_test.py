@@ -51,7 +51,7 @@ led_r=GPIO(GPIO.GPIO1, GPIO.OUT)
 ball_thresholds = [(0, 100, 10, 60, 20, 70)]
 y_goal_thresholds = [(0, 100, -30, 10, 25, 75)]
 b_goal_thresholds = [(0, 100, 20, 70, -110, -60)]
-g_cort_thresholds = [(38, 7, -35, -6, -14, 10)]
+g_coat_thresholds = [(38, 7, -35, -6, -14, 10)]
 
 #ball_thresholds = [(0, 100, 43, 84, 45, 94)]
 #y_goal_thresholds = [(0, 100, 13, 44, 58, 84)]
@@ -129,18 +129,18 @@ while True:
         pass
 
 
-    g_cort_rectarray = []
-    g_cort_x = 0
-    g_cort_y = 0
+    g_coat_rectarray = []
+    g_coat_x = 0
+    g_coat_y = 0
 
-    for blob in img.find_blobs(g_cort_thresholds, roi = goal_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = True, margin = 20):
-        g_cort_rectarray.append(list(blob.rect()))     #見つかった閾値内のオブジェクトをリストに格納
+    for blob in img.find_blobs(g_coat_thresholds, roi = goal_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = True, margin = 20):
+        g_coat_rectarray.append(list(blob.rect()))     #見つかった閾値内のオブジェクトをリストに格納
 
     try:
-        g_cort_high = max(g_cort_rectarray, key=lambda x: x[1])  # Y座標が一番大きい要素を選定
-        g_cort_y = g_cort_high[1]
-        img.draw_rectangle(g_cort_high)     #オブジェクトを囲う四角形の描画
-        img.draw_string(g_cort_high[0], g_cort_high[1] - 12, "cort")
+        g_coat_high = max(g_coat_rectarray, key=lambda x: x[1])  # Y座標が一番大きい要素を選定
+        g_coat_y = g_coat_high[1]
+        img.draw_rectangle(g_coat_high)     #オブジェクトを囲う四角形の描画
+        img.draw_string(g_coat_high[0], g_coat_high[1] - 12, "coat")
 
     except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
         pass
@@ -211,13 +211,13 @@ while True:
         else:
             is_goal_front = 1
 
-    g_cort_dis = int(g_cort_y/2)
+    g_coat_dis = int(g_coat_y/2)
 
 
 
     bool_data = (is_goal_front << 1) | is_y_goal
 
     #uart
-    send_data = bytearray([0xFF, ball_dir, ball_dis, goal_dir, goal_size, bool_data, 0xAA])
+    send_data = bytearray([0xFF, ball_dir, ball_dis, goal_dir, goal_size, g_coat_dis, bool_data, 0xAA])
     uart.write(send_data)
-    print(g_cort_dis)
+    print(g_coat_dis)
