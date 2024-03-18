@@ -51,7 +51,8 @@ led_r=GPIO(GPIO.GPIO1, GPIO.OUT)
 ball_thresholds = [(0, 100, 10, 60, 20, 70)]
 y_goal_thresholds = [(0, 100, -30, 10, 25, 75)]
 b_goal_thresholds = [(0, 100, 20, 70, -110, -60)]
-g_coat_thresholds = [(38, 7, -35, -6, -14, 10)]
+g_court_thresholds = [(38, 7, -35, -6, -14, 10)]
+ac_thresholds = [(0, 100, 0, 100, -128, 127)]
 
 #ball_thresholds = [(0, 100, 43, 84, 45, 94)]
 #y_goal_thresholds = [(0, 100, 13, 44, 58, 84)]
@@ -59,6 +60,7 @@ g_coat_thresholds = [(38, 7, -35, -6, -14, 10)]
 
 ball_tracking_roi = [0, 8, 320, 176]
 goal_tracking_roi = [0, 0, 320, 100]
+g_tracking_roi = [0, 15, 320, 100]
 
 while True:
     img = sensor.snapshot() #映像の取得
@@ -88,20 +90,42 @@ while True:
     y_goal_rectarray = []
     y_goal_x = 0
     y_goal_y = 0
-    b_goal_width = 0
+    y_goal_width = 0
+    y_goal_width_1 = 0
     y_goal_hight = 0
+    y_first_center_x = 0
+    y_second_center_x = 0
+    y_enemy_x = 0
 
     for blob in img.find_blobs(y_goal_thresholds, roi = goal_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
         y_goal_rectarray.append(list(blob.rect()))     #見つかった閾値内のオブジェクトをリストに格納
 
     try:
-        y_goal_maxrect = max(y_goal_rectarray, key = lambda x: x[2] * x[3])    #配列の中から面積の一番大きい物を選定
-        y_goal_x = y_goal_maxrect[0] + (y_goal_maxrect[2] / 2)  #中心のx座標の算出
-        y_goal_y = y_goal_maxrect[1] + (y_goal_maxrect[3] / 2)  #中心のy座標の算出
-        y_goal_width = y_goal_maxrect[2]
-        y_goal_hight = y_goal_maxrect[3]
-        img.draw_rectangle(y_goal_maxrect)     #オブジェクトを囲う四角形の描画
-        img.draw_string(y_goal_maxrect[0], y_goal_maxrect[1] - 12, "yellow goal")
+
+        sorted_rects = sorted(y_goal_rectarray, key=lambda x: x[2] * x[3], reverse=True)
+        y_first_rect = None
+        y_second_rect = None
+
+        if len(sorted_rects) >= 1:
+            y_first_rect = sorted_rects[0]
+            y_goal_x = y_first_rect[0] + (y_first_rect[2] / 2)  #中心のx座標の算出
+            y_goal_y = y_first_rect[1] + (y_first_rect[3] / 2)  #中心のy座標の算出
+            y_first_center_x = y_first_rect[0] + (y_first_rect[2] / 2)
+            y_goal_width = y_first_rect[2]
+            y_goal_hight = y_first_rect[3]
+            img.draw_rectangle(y_first_rect)     #オブジェクトを囲う四角形の描画
+            img.draw_string(y_first_rect[0], y_first_rect[1] - 12, "y_goal_1")
+
+        if len(sorted_rects) >= 2:
+            y_second_rect = sorted_rects[1]
+            y_goal_x_1 = y_second_rect[0] + (y_second_rect[2] / 2)  #中心のx座標の算出
+            y_second_center_x = y_second_rect[0] + (y_second_rect[2] / 2)
+            y_goal_width_1 = y_second_rect[2]
+            img.draw_rectangle(y_second_rect)     #オブジェクトを囲う四角形の描画
+            img.draw_string(y_second_rect[0], y_second_rect[1] - 12, "y_goal_2")
+        if y_goal_width != 0 and y_goal_width_1 != 0:
+            ratio = y_goal_width_1 / y_goal_width
+            y_enemy_x = (ratio *y_first_center_x + y_second_center_x) / (1 + ratio)
 
     except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
         pass
@@ -111,36 +135,58 @@ while True:
     b_goal_x = 0
     b_goal_y = 0
     b_goal_width = 0
+    b_goal_width_1 = 0
     b_goal_hight = 0
+    b_first_center_x = 0
+    b_second_center = 0
+    b_enemy_x = 0
 
     for blob in img.find_blobs(b_goal_thresholds, roi = goal_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
         b_goal_rectarray.append(list(blob.rect()))     #見つかった閾値内のオブジェクトをリストに格納
 
     try:
-        b_goal_maxrect = min(b_goal_rectarray, key = lambda x: x[2] * x[3])    #配列の中から面積の一番大きい物を選定
-        b_goal_x = b_goal_maxrect[0] + (b_goal_maxrect[2] / 2)  #中心のx座標の算出
-        b_goal_y = b_goal_maxrect[1] + (b_goal_maxrect[3] / 2)  #中心のy座標の算出
-        b_goal_width = b_goal_maxrect[2]
-        b_goal_hight = b_goal_maxrect[3]
-        img.draw_rectangle(b_goal_maxrect)     #オブジェクトを囲う四角形の描画
-        img.draw_string(b_goal_maxrect[0], b_goal_maxrect[1] - 12, "blue goal")
+        sorted_rects = sorted(b_goal_rectarray, key=lambda x: x[2] * x[3], reverse=True)
+        b_first_rect = None
+        b_second_rect = None
+
+        if len(sorted_rects) >= 1:
+            b_first_rect = sorted_rects[0]
+            b_goal_x = b_first_rect[0] + (b_first_rect[2] / 2)  #中心のx座標の算出
+            b_goal_y = b_first_rect[1] + (b_first_rect[3] / 2)  #中心のy座標の算出
+            b_first_center_x = b_first_rect[0] + (b_first_rect[2] / 2)
+            b_goal_width = b_first_rect[2]
+            b_goal_hight = b_first_rect[3]
+            img.draw_rectangle(b_first_rect)     #オブジェクトを囲う四角形の描画
+            img.draw_string(b_first_rect[0], b_first_rect[1] - 12, "b_goal_1")
+
+        if len(sorted_rects) >= 2:
+            b_second_rect = sorted_rects[1]
+            b_goal_x_1 = b_second_rect[0] + (b_second_rect[2] / 2)  #中心のx座標の算出
+            b_second_center_x = b_second_rect[0] + (b_second_rect[2] / 2)
+            b_goal_width_1 = b_second_rect[2]
+            img.draw_rectangle(b_second_rect)     #オブジェクトを囲う四角形の描画
+            img.draw_string(b_second_rect[0], b_second_rect[1] - 12, "b_goal_2")
+        if b_goal_width != 0 and b_goal_width_1 != 0:
+            ratio = b_goal_width_1 / b_goal_width
+            b_enemy_x = (ratio *b_first_center_x + b_second_center_x) / (1 + ratio)
 
     except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
         pass
 
 
-    g_coat_rectarray = []
-    g_coat_x = 0
-    g_coat_y = 0
+    g_court_rectarray = []
+    g_court_x = 0
+    g_court_y = 0
+    g_court_h = 0
 
-    for blob in img.find_blobs(g_coat_thresholds, roi = goal_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = True, margin = 20):
-        g_coat_rectarray.append(list(blob.rect()))     #見つかった閾値内のオブジェクトをリストに格納
+    for blob in img.find_blobs(g_court_thresholds, roi = g_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = True, margin = 20):
+        g_court_rectarray.append(list(blob.rect()))     #見つかった閾値内のオブジェクトをリストに格納
 
     try:
-        g_coat_high = max(g_coat_rectarray, key=lambda x: x[1])  # Y座標が一番大きい要素を選定
-        g_coat_y = g_coat_high[1]
-        img.draw_rectangle(g_coat_high)     #オブジェクトを囲う四角形の描画
-        img.draw_string(g_coat_high[0], g_coat_high[1] - 12, "coat")
+        g_court_max = max(g_court_rectarray, key=lambda x: x[1])  # Y座標が一番大きい要素を選定
+        g_court_h = g_court_max[3]
+        img.draw_rectangle(g_court_max)     #オブジェクトを囲う四角形の描画
+        img.draw_string(g_court_max[0], g_court_max[1] - 12, "court")
 
     except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
         pass
@@ -196,6 +242,7 @@ while True:
 
     if(y_goal_hight > b_goal_hight):
         is_y_goal = 1
+        enemy_dir = int(y_enemy_x / ANGLE_CONVERSION)
         goal_dir = y_goal_dir
         goal_size = y_goal_hight
         if(y_goal_x + (y_goal_width / 2) < 170 or y_goal_x - (y_goal_width / 2) > 150):
@@ -204,6 +251,7 @@ while True:
             is_goal_front = 1
     else:
         is_y_goal = 0
+        enemy_dir = int(b_enemy_x / ANGLE_CONVERSION)
         goal_dir = b_goal_dir
         goal_size = b_goal_hight
         if(b_goal_x + (b_goal_width / 2) < 170 or b_goal_x - (b_goal_width / 2) > 150):
@@ -211,13 +259,13 @@ while True:
         else:
             is_goal_front = 1
 
-    g_coat_dis = int(g_coat_y/2)
+    g_court_dis = int(abs(g_court_h/2 -49))
 
 
 
-    bool_data = (is_goal_front << 1) | is_y_goal
+    bool_data = (g_court_dis << 2) | (is_goal_front << 1) | is_y_goal
 
     #uart
-    send_data = bytearray([0xFF, ball_dir, ball_dis, goal_dir, goal_size, g_coat_dis, bool_data, 0xAA])
+    send_data = bytearray([0xFF, ball_dir, ball_dis, goal_dir, goal_size, enemy_dir, bool_data, 0xAA])
     uart.write(send_data)
-    print(g_coat_dis)
+    print(g_court_dis)
