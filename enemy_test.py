@@ -115,6 +115,9 @@ while True:
     for blob in img.find_blobs(y_goal_thresholds, roi = goal_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
         y_goal_rectarray.append(list(blob.rect()))     #見つかった閾値内のオブジェクトをリストに格納
 
+    for blob in img.find_blobs(y_goal_thresholds, roi = goal_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = True, margin = 1500):
+        y_range.append(list(blob.rect()))
+
     try:
         y_goal_maxrect = max(y_goal_rectarray, key = lambda x: x[2] * x[3])    #配列の中から面積の一番大きい物を選定
         y_range_maxrect = max(y_goal_rectarray, key = lambda x: x[2] * x[3])
