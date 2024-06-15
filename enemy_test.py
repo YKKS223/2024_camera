@@ -54,16 +54,22 @@ led_r=GPIO(GPIO.GPIO1, GPIO.OUT)
 #各閾値
 ball_thresholds = [(0, 100, 8, 37, 40, 59)]
 y_goal_thresholds = [(0, 100, -30, 10, 25, 75)]
-b_goal_thresholds = [(0, 100, 20, 70, -110, -60)]
+b_goal_thresholds = [(0, 100, -13, 2, -33, -128)]
 g_court_thresholds = [(38, 7, -35, -6, -14, 10)]
-nonh_court_thresholds = [(0, 85, 9, -100, 8, 112)]
-nonb_court_thresholds = [(0, 3, 20, -73, 24, -74)]
+#nonh_court_thresholds = [(0, 85, 9, -100, 8, 112)]
+#nonb_court_thresholds = [(0, 3, 20, -73, 24, -74)]
 all_thresholds = [(0, 100, -128, 127, -128, 127)] #仮
 #g1_court_thresholds = [(38, 7, -35, -6, -14, 10)] #コート色保存
+gh_1 = g_court_thresholds[0][4] *-1
+nonh_court_thresholds = [(0, 100, 127, -128, gh_1, 127)]
+nonb_court_thresholds = [(0, 100, 0, 127, -128, 127)]
+yb_1 = y_goal_thresholds[0][2] *-1
+nonh_y_goal_thresholds = [(0, 100, 0, -128, 127, -128)]
+nonb_y_goal_thresholds = [(0, 100, yb_1, 127, -128, 127)]
+bh_1 = b_goal_thresholds[0][2] *-1
+nonh_b_goal_thresholds = [(0, 100, 0, -128, 127, -128)]
+nonb_b_goal_thresholds = [(0, 100, bh_1, -128, 127, 0)]
 
-#ball_thresholds = [(0, 100, 43, 84, 45, 94)]
-#y_goal_thresholds = [(0, 100, 13, 44, 58, 84)]
-#b_goal_thresholds = [(0, 100, 13, 37, -67, 3)]
 
 ball_tracking_roi = [0, 8, 320, 176]
 goal_tracking_roi = [0, 0, 320, 100]
@@ -109,12 +115,9 @@ while True:
     for blob in img.find_blobs(y_goal_thresholds, roi = goal_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
         y_goal_rectarray.append(list(blob.rect()))     #見つかった閾値内のオブジェクトをリストに格納
 
-    for blob in img.find_blobs(y_goal_thresholds, roi = goal_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = True, margin = 500):
-        y_range.append(list(blob.rect()))
-
     try:
         y_goal_maxrect = max(y_goal_rectarray, key = lambda x: x[2] * x[3])    #配列の中から面積の一番大きい物を選定
-        y_range_maxrect = max(b_goal_rectarray, key = lambda x: x[2] * x[3])
+        y_range_maxrect = max(y_goal_rectarray, key = lambda x: x[2] * x[3])
         y_goal_x = y_goal_maxrect[0] + (y_goal_maxrect[2] / 2)  #中心のx座標の算出
         y_goal_y = y_goal_maxrect[1] + (y_goal_maxrect[3] / 2)  #中心のy座標の算出
         y_goal_width = y_goal_maxrect[2]
@@ -123,8 +126,9 @@ while True:
         y_goal_r = y_range_maxrect[2] - framekey
         y_goal_u = y_goal_hight + framekey
         y_goal_b = y_range_maxrect[1] - framekey
-        img.draw_rectangle(y_goal_maxrect)     #オブジェクトを囲う四角形の描画
-        img.draw_string(y_goal_maxrect[0], y_goal_maxrect[1] - 12, "yellow goal")
+        #img.draw_rectangle(y_goal_maxrect)     #オブジェクトを囲う四角形の描画
+        #img.draw_rectangle(y_range_maxrect)
+        #img.draw_string(y_goal_maxrect[0], y_goal_maxrect[1] - 12, "yellow goal")
 
     except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
         pass
@@ -185,7 +189,7 @@ while True:
         g_court_h = g_court_max[3]
         g_court_l = g_court_max[0] + framekey
         g_court_r = g_court_max[2] - framekey
-        g_coutt_u = g_court_h + framekey
+        g_court_u = g_court_h + framekey
 
         #img.draw_rectangle(g_court_max)     #オブジェクトを囲う四角形の描画
         #img.draw_string(g_court_max[0], g_court_max[1] - 12, "court")
@@ -193,63 +197,61 @@ while True:
     except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
         pass
 
-    non_court_rectarray = []
-    non_x = 0
-    non_y = 0
-    #yゴール用閾値挟み撃ち これ全範囲にしてy_goalの閾値を省けば早い　検証
-    for blob in img.find_blobs(all_thresholds, roi = goal_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
+    #y_goal用閾値挟み撃ち
+    for blob in img.find_blobs(nonb_y_goal_thresholds, roi = ball_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
         rect = list(blob.rect())
-        if y_goal_l < rect[0] < y_goal_r and y_goal_u < rect[1] < y_goal_b:
-            if not all_thresholds == y_goal_thresholds and not all_thresholds == ball_thresholds:
-                non_y_rectarray.append(rect)
-                img.draw_string(non_y_rectarray[0], non_y_rectarray[1] - 12, "robot")
+        if y_goal_l < rect[0] < y_goal_r and y_goal_u < rect[1] < y_goal_b and 120 < rect[1] < y_goal_b:
+            if not nonb_y_goal_thresholds == ball_thresholds:
+                non_y_goal_rectarray.append(rect)
 
-    for blob in img.find_blobs(all_thresholds, roi = goal_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
+    for blob in img.find_blobs(nonh_y_goal_thresholds, roi = ball_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
         rect = list(blob.rect())
-        if b_goal_l < rect[0] < b_goal_r and b_goal_u < rect[1] < b_goal_b:
-            if not all_thresholds == b_goal_thresholds and not all_thresholds == ball_thresholds:
-                non_b_rectarray.append(rect)
-                img.draw_string(non_b_rectarray[0], non_b_rectarray[1] - 12, "robot")
+        if y_goal_l < rect[0] < y_goal_r and y_goal_u < rect[1] < y_goal_b and 120 < rect[1] < y_goal_b:
+            if not nonh_y_goal_thresholds == ball_thresholds:
+                non_y_goal_rectarray.append(rect)
+
+    #b_goal用閾値挟み撃ち
+    for blob in img.find_blobs(nonb_b_goal_thresholds, roi = ball_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
+        rect = list(blob.rect())
+        if b_goal_l < rect[0] < b_goal_r and b_goal_u < rect[1] < b_goal_b and 120 < rect[1] < b_goal_b:
+            if not nonb_b_goal_thresholds == ball_thresholds:
+                non_b_goal_rectarray.append(rect)
+
+    for blob in img.find_blobs(nonh_b_goal_thresholds, roi = ball_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
+        rect = list(blob.rect())
+        if b_goal_l < rect[0] < b_goal_r and b_goal_u < rect[1] < b_goal_b and 120< rect[1] < b_goal_b:
+            if not nonh_b_goal_thresholds == ball_thresholds:
+                non_b_goal_rectarray.append(rect)
 
     #コート用閾値挟み撃ち
     for blob in img.find_blobs(nonb_court_thresholds, roi = ball_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
         rect = list(blob.rect())
-        if g_court_l < rect[0] < g_court_r and g_coutt_u < rect[1] < 100:
-            if not nonb_court_thresholds == ball_thresholds:
-                non_court_rectarray.append(rect)
-                threshold_height = rect[3]
+        if g_court_l < rect[0] < g_court_r and g_court_u < rect[1] < 100 and 120 < rect[1] < 100:
+            non_court_rectarray.append(rect)
 
     for blob in img.find_blobs(nonh_court_thresholds, roi = ball_tracking_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
         rect = list(blob.rect())
-        if g_court_l < rect[0] < g_court_r and g_coutt_u < rect[1] < 100:
-            if not nonb_court_thresholds == ball_thresholds:
-                non_court_rectarray.append(rect)
-                threshold_height = rect[3]
+        if g_court_l < rect[0] < g_court_r and g_court_u < rect[1] < 100 and 120 < rect[1] < 100:
+            non_court_rectarray.append(rect)
 
-    distinct_blobs = []
-    for rect in non_court_rectarray:
-        if all(abs(rect[3] - other_rect[3]) > threshold_height for other_rect in distinct_blobs):
-            distinct_blobs.append(rect)
-
-    #for rect in distinct_blobs:
-        #img.draw_rectangle(rect)
-
+    non_court_rectarray = []
     try:
-        non_court_rect = sorted(non_court_rectarray, key=lambda x: x[2] * x[3], reverse=True)
-        f_robot = None
-        s_robot = None
-        t_robot = None
+        non_court_rect = max(non_court_rectarray, key=lambda x: x[2] * x[3])
+        img.draw_rectangle(non_court_rect)
+    except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
+        pass
 
-        if len(non_court_rect) >= 1:
-            f_robot = non_court_rect[0]
-            img.draw_rectangle(f_robot)
-        #if len(non_court_rect) >= 2:
-            #f_robot = non_court_rect[1]
-            #img.draw_rectangle(s_robot)
+    non_y_goal_rectarray = []
+    try:
+        non_y_goal_rect = max(non_y_goal_rectarray, key=lambda x: x[2] * x[3])
+        img.draw_rectangle(non_y_goal_rect)
+    except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
+        pass
 
-        #img.draw_rectangle(non_court_max)
-
-
+    non_b_goal_rectarray = []
+    try:
+        non_b_goal_rect = max(non_b_goal_rectarray, key=lambda x: x[2] * x[3])
+        img.draw_rectangle(non_b_goal_rect)
     except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
         pass
 
@@ -304,7 +306,6 @@ while True:
 
     if(y_goal_hight > b_goal_hight):
         is_y_goal = 1
-        enemy_dir = int(y_enemy_x / ANGLE_CONVERSION)
         goal_dir = y_goal_dir
         goal_size = y_goal_hight
         if(y_goal_x + (y_goal_width / 2) < 170 or y_goal_x - (y_goal_width / 2) > 150):
@@ -313,7 +314,6 @@ while True:
             is_goal_front = 1
     else:
         is_y_goal = 0
-        enemy_dir = int(b_enemy_x / ANGLE_CONVERSION)
         goal_dir = b_goal_dir
         goal_size = b_goal_hight
         if(b_goal_x + (b_goal_width / 2) < 170 or b_goal_x - (b_goal_width / 2) > 150):
@@ -326,7 +326,7 @@ while True:
     bool_data = (g_court_dis << 2) | (is_goal_front << 1) | is_y_goal
 
     #uart
-    send_data = bytearray([0xFF, ball_dir, ball_dis, goal_dir, goal_size, enemy_dir, bool_data, 0xAA])
+    send_data = bytearray([0xFF, ball_dir, ball_dis, goal_dir, goal_size, bool_data, 0xAA])
     uart.write(send_data)
     print(goal_size)
     #print((bool_data >> 2) & 0b00111111)
