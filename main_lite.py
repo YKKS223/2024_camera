@@ -3,8 +3,6 @@ from machine import UART
 from Maix import GPIO
 import sensor, image, time, math
 
-import KPU as kpu
-
 #センサーの設定
 sensor.reset(freq = 24000000, set_regs = True, dual_buff = True)
 sensor.set_pixformat(sensor.RGB565)
