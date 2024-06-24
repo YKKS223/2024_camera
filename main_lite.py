@@ -52,7 +52,7 @@ led_g=GPIO(GPIO.GPIO0, GPIO.OUT)
 led_r=GPIO(GPIO.GPIO1, GPIO.OUT)
 
 #各閾値
-ball_thresholds = [(0, 100, 8, 37, 40, 59)]
+ball_thresholds = [(20, 75, 37, 68, 71, 10)]
 y_goal_thresholds = [(0, 100, -30, 10, 25, 75)]
 b_goal_thresholds = [(0, 100, -13, 2, -33, -128)]
 g_court_thresholds = [(100, 0, -128, 127, -14, 32)]
@@ -70,10 +70,14 @@ while True:
     ball_rectarray = []
     ball_x = 0
     ball_y = 0
+    is_ball_area = 0
 
     for blob in img.find_blobs(ball_thresholds, roi = ball_tracking_roi, pixel_threshold = 10, area_threshold = 10, merge = True, margin = 10):
         if(blob[2] < 75):
             ball_rectarray.append(list(blob.rect()))     #見つかった閾値内のオブジェクトをリストに格納
+            rect = list(blob.rect())
+            if 135 < rect[0] < 185 and 170 < rect[1]:
+                is_ball_area = 1
 
     try:
         ball_maxrect = max(ball_rectarray, key = lambda x: x[1])    #配列の中から一番画面の下にあるものを選定
@@ -228,3 +232,4 @@ while True:
     send_data = bytearray([0xFF, ball_dir, ball_dis, goal_dir, goal_size, bool_data, 0xAA])
     uart.write(send_data)
     #print((bool_data >> 2) & 0b00111111)
+    print(is_ball_area)
