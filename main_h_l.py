@@ -240,3 +240,4 @@ while True:
     #uart送信
     send_data = bytearray([0xFF, ball_dir, ball_dis, goal_dir, goal_size, bool_data, proximity_data, 0xAA])
     uart.write(send_data)
+    print(proximity_data)
