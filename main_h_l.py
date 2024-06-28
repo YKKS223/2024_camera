@@ -72,28 +72,17 @@ def MatrixMultiply(matrix, vector): #行列の積を計算する関数
     result = [[sum(a * b for a, b in zip(row, col)) for col in zip(*vector)] for row in matrix]
     return result
 
-def Check(thresholds, lab): #ビットの色を閾値を元に判定する関数
-    l_min, l_max, a_min, a_max, b_min, b_max = thresholds[0]
-    if lab[0] > l_min and lab[0] < l_max and lab[1] > a_min and lab[1] < a_max and lab[2] > b_min and lab[2] < b_max:
-        return 1
-    else:
-        return 0
-
 def CheckGreen(x, y):
-    bit = [[0,0,0],[0,0,0],[0,0,0]]
-    bit[0][0] = Check(court_thresholds, image.rgb_to_lab(img.get_pixel(x - 3, y + 3)))
-    bit[0][1] = Check(court_thresholds, image.rgb_to_lab(img.get_pixel(x, y + 3)))
-    bit[0][2] = Check(court_thresholds, image.rgb_to_lab(img.get_pixel(x + 3, y + 3)))
-    bit[1][0] = Check(court_thresholds, image.rgb_to_lab(img.get_pixel(x - 3, y)))
-    bit[1][1] = Check(court_thresholds, image.rgb_to_lab(img.get_pixel(x, y)))
-    bit[1][2] = Check(court_thresholds, image.rgb_to_lab(img.get_pixel(x + 3, y)))
-    bit[2][0] = Check(court_thresholds, image.rgb_to_lab(img.get_pixel(x - 3, y - 3)))
-    bit[2][1] = Check(court_thresholds, image.rgb_to_lab(img.get_pixel(x, y - 3)))
-    bit[2][2] = Check(court_thresholds, image.rgb_to_lab(img.get_pixel(x + 3, y - 3)))
-    if(bit[0][0] | bit[0][1] | bit[0][2] | bit[1][0] | bit[1][1] | bit[1][2] | bit[2][0] | bit[2][1] | bit[2][2]):
-        return 0
-    else:
-        return 1
+    def Check(thresholds, lab):
+        l_min, l_max, a_min, a_max, b_min, b_max = thresholds[0]
+        return 1 if l_min < lab[0] < l_max and a_min < lab[1] < a_max and b_min < lab[2] < b_max else 0
+
+    bit = []
+    for dx in [-3, 0, 3]:
+        for dy in [-3, 0, 3]:
+            bit.append(Check(court_thresholds, image.rgb_to_lab(img.get_pixel(x + dx, y + dy))))
+
+    return 0 if any(bit) else 1
 
 def HomographyProjection(center_x, center_y): #ホモグラフィー変換をする関数
     #カメラ座標でのコートベクトル
@@ -122,7 +111,7 @@ while True:
         ball_maxrect = max(ball_rectarray, key = lambda x: x[1])    #配列の中から一番画面の下にあるものを選定
         ball_x = ball_maxrect[0] + (ball_maxrect[2] * 0.5)  #中心のx座標の算出
         ball_y = ball_maxrect[1] + (ball_maxrect[3] * 0.5)  #中心のy座標の算出
-        img.draw_circle(int(ball_x), int(ball_y), int((ball_maxrect[2] * 0.5 + ball_maxrect[3] * 0.5) * 0.5))
+        #img.draw_circle(int(ball_x), int(ball_y), int((ball_maxrect[2] * 0.5 + ball_maxrect[3] * 0.5) * 0.5))
 
     except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
         pass
@@ -141,8 +130,8 @@ while True:
         y_goal_x = y_goal_maxrect[0] + (y_goal_maxrect[2] * 0.5)  #中心のx座標の算出
         y_goal_width = y_goal_maxrect[2]
         y_goal_hight = y_goal_maxrect[3]
-        img.draw_rectangle(y_goal_maxrect)     #オブジェクトを囲う四角形の描画
-        img.draw_string(y_goal_maxrect[0], y_goal_maxrect[1] - 12, "yellow goal")
+        #img.draw_rectangle(y_goal_maxrect)     #オブジェクトを囲う四角形の描画
+        #img.draw_string(y_goal_maxrect[0], y_goal_maxrect[1] - 12, "yellow goal")
 
     except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
         pass
@@ -161,8 +150,8 @@ while True:
         b_goal_x = b_goal_maxrect[0] + (b_goal_maxrect[2] * 0.5)  #中心のx座標の算出
         b_goal_width = b_goal_maxrect[2]
         b_goal_hight = b_goal_maxrect[3]
-        img.draw_rectangle(b_goal_maxrect)     #オブジェクトを囲う四角形の描画
-        img.draw_string(b_goal_maxrect[0], b_goal_maxrect[1] - 12, "blue goal")
+        #img.draw_rectangle(b_goal_maxrect)     #オブジェクトを囲う四角形の描画
+        #img.draw_string(b_goal_maxrect[0], b_goal_maxrect[1] - 12, "blue goal")
 
     except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
         pass
@@ -178,8 +167,8 @@ while True:
         court_maxrect = max(court_rectarray, key = lambda x: x[2] * x[3])  # Y座標が一番大きい要素を選定
         court_x = court_maxrect[0] + (court_maxrect[2] * 0.5)  #中心のx座標の算出
         court_y = court_maxrect[1]
-        img.draw_line(0, court_maxrect[1], 320, court_maxrect[1])     #オブジェクトを囲う四角形の描画
-        img.draw_string(court_maxrect[0], court_maxrect[1] - 12, "court")
+        #img.draw_line(0, court_maxrect[1], 320, court_maxrect[1])     #オブジェクトを囲う四角形の描画
+        #img.draw_string(court_maxrect[0], court_maxrect[1] - 12, "court")
 
     except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
         pass
@@ -245,10 +234,9 @@ while True:
 
     #擬似LiDAR
     proximity_data = sum(CheckGreen(x, PROXIMITY_HEIGHT) << (6 - i) for i, x in enumerate(range(40, 301, 40)))
-    for x in range(40, 301, 40):
-        img.draw_cross(x, PROXIMITY_HEIGHT)
+    #for x in range(40, 301, 40):
+        #img.draw_cross(x, PROXIMITY_HEIGHT)
 
     #uart送信
     send_data = bytearray([0xFF, ball_dir, ball_dis, goal_dir, goal_size, bool_data, proximity_data, 0xAA])
     uart.write(send_data)
-    print(proximity_data)
