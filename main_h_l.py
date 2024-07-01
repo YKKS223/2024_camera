@@ -24,7 +24,7 @@ HEIGHT = 184
 PROXIMITY_HEIGHT = 110
 
 #ホモグラフィー変換行列
-homegraphy_matrix = [[ 6.25000, -4.38017, -1.04083 ],
+homography_matrix = [[ 6.25000, -4.38017, -1.04083 ],
                      [ 0.00000,  9.19117,  0.00000 ],
                      [ 2.37169, -5.51470,  1.00000 ]]
 
@@ -91,7 +91,7 @@ def HomographyProjection(center_x, center_y): #ホモグラフィー変換をす
                      [1       ]]
 
     #ボールベクトルをワールド座標に変換
-    coordinate = MatrixMultiply(homegraphy_matrix, camera_vector)
+    coordinate = MatrixMultiply(homography_matrix, camera_vector)
     world_vector = [[coordinate[0][0] / coordinate[2][0]],
                     [coordinate[1][0] / coordinate[2][0]]]
     return world_vector
@@ -119,7 +119,7 @@ while True:
     #黄色ゴールを見つける
     y_goal_rectarray = []
     y_goal_x = 0
-    b_goal_width = 0
+    y_goal_width = 0
     y_goal_hight = 0
 
     for blob in img.find_blobs(y_goal_thresholds, roi = goal_roi, pixel_threshold = 100, area_threshold = 100, merge = True, margin = 50):
@@ -188,7 +188,6 @@ while True:
     ball_dir = int(ball_x * ANGLE_CONVERSION) #ボールの角度を求める
 
     #カメラ座標でのボールベクトル
-
     world_ball_vector = HomographyProjection(ball_x - 160, 184 - ball_y)
 
     #ボールベクトルの大きさ
@@ -240,4 +239,3 @@ while True:
     #uart送信
     send_data = bytearray([0xFF, ball_dir, ball_dis, goal_dir, goal_size, bool_data, proximity_data, 0xAA])
     uart.write(send_data)
-    print(proximity_data)
