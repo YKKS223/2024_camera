@@ -103,9 +103,13 @@ while True:
     ball_rectarray = []
     ball_x = 0
     ball_y = 0
+    is_ball_area = 0
     for blob in img.find_blobs(ball_thresholds, roi = ball_roi, pixel_threshold = 10, area_threshold = 10, merge = True, margin = 10):
         if blob[2] < 150:
             ball_rectarray.append(list(blob.rect()))     #見つかった閾値内のオブジェクトをリストに格納
+            rect = list(blob.rect())
+            if 135 < rect[0] < 185 and 170 < rect[1]:
+                is_ball_area = 1
 
     try:
         ball_maxrect = max(ball_rectarray, key = lambda x: x[1])    #配列の中から一番画面の下にあるものを選定
