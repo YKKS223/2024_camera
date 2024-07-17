@@ -39,8 +39,8 @@ sensor.set_windowing((WIDTH, HEIGHT))
 sensor.set_auto_gain(False, gain_db = 0)
 sensor.set_auto_whitebal(False, rgb_gain_db = (25, 20, 40))
 sensor.set_auto_exposure(False)
-sensor.set_contrast(0)
-sensor.set_saturation(0)
+sensor.set_contrast(2)
+sensor.set_saturation(1)
 sensor.set_brightness(0)
 sensor.run(1)
 
@@ -54,9 +54,9 @@ fm.register(11, fm.fpioa.UART1_RX, force = True)
 uart = UART(UART.UART1, UART_SPEED, 8, None, 1, timeout = 1000, read_buf_len = 4096)
 
 #各閾値
-ball_thresholds = [(0, 100, 30, 60, 30, 60)]
-y_goal_thresholds = [(0, 100, -20, 15, 21, 69)]
-b_goal_thresholds = [(0, 100, 16, 64, -106, -58)]
+ball_thresholds = [(0, 100, 13, 70, 12, 69)]
+y_goal_thresholds = [(0, 100, -20, 16, 31, 68)]
+b_goal_thresholds = [(0, 100, 32, 70, 33, 69)]
 court_thresholds = [(0, 100, -35, -6, -14, 10)]
 
 ball_roi_cut_top = const(14)
@@ -115,7 +115,7 @@ while True:
         ball_maxrect = max(ball_rectarray, key = lambda x: x[1])    #配列の中から一番画面の下にあるものを選定
         ball_x = ball_maxrect[0] + (ball_maxrect[2] * 0.5)  #中心のx座標の算出
         ball_y = ball_maxrect[1] + (ball_maxrect[3] * 0.5)  #中心のy座標の算出
-        #img.draw_circle(int(ball_x), int(ball_y), int((ball_maxrect[2] * 0.5 + ball_maxrect[3] * 0.5) * 0.5))
+        img.draw_circle(int(ball_x), int(ball_y), int((ball_maxrect[2] * 0.5 + ball_maxrect[3] * 0.5) * 0.5))
 
     except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
         pass
@@ -126,7 +126,7 @@ while True:
     y_goal_width = 0
     y_goal_hight = 0
 
-    for blob in img.find_blobs(y_goal_thresholds, roi = goal_roi, pixel_threshold = 100, area_threshold = 100, merge = True, margin = 50):
+    for blob in img.find_blobs(y_goal_thresholds, roi = goal_roi, pixel_threshold = 100, area_threshold = 100, merge = True, margin = 10):
         y_goal_rectarray.append(list(blob.rect()))     #見つかった閾値内のオブジェクトをリストに格納
 
     try:
@@ -134,8 +134,8 @@ while True:
         y_goal_x = y_goal_maxrect[0] + (y_goal_maxrect[2] * 0.5)  #中心のx座標の算出
         y_goal_width = y_goal_maxrect[2]
         y_goal_hight = y_goal_maxrect[3]
-        #img.draw_rectangle(y_goal_maxrect)     #オブジェクトを囲う四角形の描画
-        #img.draw_string(y_goal_maxrect[0], y_goal_maxrect[1] - 12, "yellow goal")
+        img.draw_rectangle(y_goal_maxrect)     #オブジェクトを囲う四角形の描画
+        img.draw_string(y_goal_maxrect[0], y_goal_maxrect[1] - 12, "yellow goal")
 
     except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
         pass
@@ -146,7 +146,7 @@ while True:
     b_goal_width = 0
     b_goal_hight = 0
 
-    for blob in img.find_blobs(b_goal_thresholds, roi = goal_roi, pixel_threshold = 100, area_threshold = 100, merge = False):
+    for blob in img.find_blobs(b_goal_thresholds, roi = goal_roi, pixel_threshold = 100, area_threshold = 100, merge = True, margin = 10):
         b_goal_rectarray.append(list(blob.rect()))     #見つかった閾値内のオブジェクトをリストに格納
 
     try:
@@ -154,8 +154,8 @@ while True:
         b_goal_x = b_goal_maxrect[0] + (b_goal_maxrect[2] * 0.5)  #中心のx座標の算出
         b_goal_width = b_goal_maxrect[2]
         b_goal_hight = b_goal_maxrect[3]
-        #img.draw_rectangle(b_goal_maxrect)     #オブジェクトを囲う四角形の描画
-        #img.draw_string(b_goal_maxrect[0], b_goal_maxrect[1] - 12, "blue goal")
+        img.draw_rectangle(b_goal_maxrect)     #オブジェクトを囲う四角形の描画
+        img.draw_string(b_goal_maxrect[0], b_goal_maxrect[1] - 12, "blue goal")
 
     except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
         pass
