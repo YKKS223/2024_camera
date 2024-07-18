@@ -15,6 +15,9 @@ led_g.value(1)
 print("Current CPU Frequency: ", Maix.freq.get_cpu())
 print("Current KPU Frequency: ", Maix.freq.get_kpu())
 
+print("Current CPU Frequency: ", Maix.freq.get_cpu())
+print("Current KPU Frequency: ", Maix.freq.get_kpu())
+
 #定数定義
 UART_SPEED = const(230400)
 ANGLE_CONVERSION = 0.28125
@@ -24,9 +27,9 @@ HEIGHT = const(184)
 PROXIMITY_HEIGHT = const(110)
 
 #ホモグラフィー変換行列
-homography_matrix = [[ 6.25000, -4.38017, -1.04083 ],
-                     [ 0.00000,  9.19117,  0.00000 ],
-                     [ 2.37169, -5.51470,  1.00000 ]]
+homegraphy_matrix = [[ 6.25000000e-02, -4.38017678e-17, -1.04083409e-16 ],
+                     [ 0.00000000e+00,  9.19117647e-02,  0.00000000e+00 ],
+                     [ 2.37169225e-20, -5.51470588e-03,  1.00000000e+00 ]]
 
 #センサーの設定
 sensor.reset(freq = 24000000, set_regs = True, dual_buff = True)
@@ -37,13 +40,12 @@ sensor.set_hmirror(1)
 sensor.set_windowing((WIDTH, HEIGHT))
 
 sensor.set_auto_gain(False, gain_db = 0)
-sensor.set_auto_whitebal(False, rgb_gain_db = (25, 20, 40))
+sensor.set_auto_whitebal(False, rgb_gain_db = (25, 20, 50))
 sensor.set_auto_exposure(False)
 sensor.set_contrast(2)
-sensor.set_saturation(1)
+sensor.set_saturation(-1)
 sensor.set_brightness(0)
 sensor.run(1)
-
 camera_gain = sensor.get_gain_db()
 sensor.set_auto_gain(False, camera_gain)
 
@@ -54,17 +56,17 @@ fm.register(11, fm.fpioa.UART1_RX, force = True)
 uart = UART(UART.UART1, UART_SPEED, 8, None, 1, timeout = 1000, read_buf_len = 4096)
 
 #各閾値
-ball_thresholds = [(0, 100, 13, 70, 12, 69)]
-y_goal_thresholds = [(0, 100, -20, 16, 31, 68)]
-b_goal_thresholds = [(0, 100, 78, 6, -23, -81)]
-court_thresholds = [(0, 100, -35, -6, -14, 10)]
+ball_thresholds = [(0, 100, 2, 35, 10, 33)]
+y_goal_thresholds = [(0, 100, -18, 19, 16, 44)]
+b_goal_thresholds = [(0, 100, 8, 37, -46, -24)]
+court_thresholds = [(0, 100, -63, -13, -37, 28)]
 
-ball_roi_cut_top = const(14)
-court_roi_cut_top = const(14)
-goal_roi_cut_bottom = const(84)
+ball_roi_cut_top = 14
+court_roi_cut_top = 14
+goal_roi_cut_bottom = 64
 ball_roi = [0, ball_roi_cut_top, WIDTH, HEIGHT - ball_roi_cut_top]
 court_roi = [0, court_roi_cut_top, WIDTH, HEIGHT - ball_roi_cut_top]
-goal_roi = [0, 0, WIDTH, HEIGHT - goal_roi_cut_bottom]
+goal_roi = [0, 20, WIDTH, HEIGHT - goal_roi_cut_bottom]
 
 led_g.value(0)
 
@@ -90,8 +92,8 @@ def HomographyProjection(center_x, center_y): #ホモグラフィー変換をす
                      [center_y],
                      [1       ]]
 
-    #ボールベクトルをワールド座標に変換
-    coordinate = MatrixMultiply(homography_matrix, camera_vector)
+    #ワールド座標に変換
+    coordinate = MatrixMultiply(homegraphy_matrix, camera_vector)
     world_vector = [[coordinate[0][0] / coordinate[2][0]],
                     [coordinate[1][0] / coordinate[2][0]]]
     return world_vector
@@ -134,8 +136,8 @@ while True:
         y_goal_x = y_goal_maxrect[0] + (y_goal_maxrect[2] * 0.5)  #中心のx座標の算出
         y_goal_width = y_goal_maxrect[2]
         y_goal_hight = y_goal_maxrect[3]
-        img.draw_rectangle(y_goal_maxrect)     #オブジェクトを囲う四角形の描画
-        img.draw_string(y_goal_maxrect[0], y_goal_maxrect[1] - 12, "yellow goal")
+        #img.draw_rectangle(y_goal_maxrect)     #オブジェクトを囲う四角形の描画
+        #img.draw_string(y_goal_maxrect[0], y_goal_maxrect[1] - 12, "yellow goal")
 
     except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
         pass
@@ -154,8 +156,8 @@ while True:
         b_goal_x = b_goal_maxrect[0] + (b_goal_maxrect[2] * 0.5)  #中心のx座標の算出
         b_goal_width = b_goal_maxrect[2]
         b_goal_hight = b_goal_maxrect[3]
-        img.draw_rectangle(b_goal_maxrect)     #オブジェクトを囲う四角形の描画
-        img.draw_string(b_goal_maxrect[0], b_goal_maxrect[1] - 12, "blue goal")
+        #img.draw_rectangle(b_goal_maxrect)     #オブジェクトを囲う四角形の描画
+        #img.draw_string(b_goal_maxrect[0], b_goal_maxrect[1] - 12, "blue goal")
 
     except ValueError as err:   #オブジェクトがひとつも見つからなかった場合の例外処理
         pass
@@ -243,3 +245,4 @@ while True:
     #uart送信
     send_data = bytearray([0xFF, ball_dir, ball_dis, goal_dir, goal_size, bool_data, proximity_data, 0xAA])
     uart.write(send_data)
+    print(ball_dis)
